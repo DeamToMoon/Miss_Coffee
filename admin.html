@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MissCoffe Admin ☕</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#04050f;--card:rgba(10,10,35,.9);
+  --pink:#f472b6;--pink2:#ec4899;
+  --blue:#60a5fa;--blue2:#3b82f6;
+  --indigo:#818cf8;
+  --green:#4ade80;--red:#fb7185;
+  --cream:#ffffff;--muted:rgba(255,255,255,.55);
+  --faint:rgba(255,255,255,.08);--gold:#fbbf24;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--cream);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh;padding:0 0 60px;}
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-card{background:var(--card);border:1px solid var(--faint);border-radius:20px;padding:28px 24px;width:100%;max-width:340px;}
+.login-title{font-size:22px;font-weight:900;color:var(--cream);text-align:center;margin-bottom:4px;}
+.login-sub{font-size:11px;color:var(--muted);text-align:center;margin-bottom:24px;letter-spacing:2px;text-transform:uppercase;}
+.l-inp{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--cream);font-size:16px;outline:none;margin-bottom:12px;font-family:inherit;}
+.l-inp:focus{border-color:rgba(244,114,182,.5);}
+.l-inp::placeholder{color:var(--muted);}
+.l-btn{width:100%;padding:13px;background:linear-gradient(135deg,#be185d,var(--pink));border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;}
+.l-err{font-size:11px;color:var(--red);text-align:center;margin-top:10px;display:none;}
+/* ADMIN PANEL */
+#adminPanel{display:none;max-width:480px;margin:0 auto;padding:0 16px;}
+.top-bar{background:rgba(4,5,15,.97);border-bottom:1px solid var(--faint);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;margin:0 -16px 20px;}
+.top-title{font-size:16px;font-weight:900;color:var(--cream);}
+.top-sub{font-size:10px;color:var(--pink);letter-spacing:2px;text-transform:uppercase;}
+.logout-btn{padding:7px 14px;background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3);border-radius:8px;color:var(--red);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--faint);border-radius:20px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.ct{height:2px;margin:-20px -20px 18px;}
+.ct-pink{background:linear-gradient(90deg,transparent,var(--pink),transparent);}
+.ct-indigo{background:linear-gradient(90deg,transparent,var(--indigo),transparent);}
+.ct-green{background:linear-gradient(90deg,transparent,var(--green),transparent);}
+.card-ey{font-size:8px;letter-spacing:3px;color:var(--pink);text-transform:uppercase;margin-bottom:5px;opacity:.8;}
+.card-hdr{font-size:18px;font-weight:800;color:var(--cream);margin-bottom:16px;}
+/* INPUTS */
+.lbl{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.inp{width:100%;padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--cream);font-size:15px;outline:none;transition:border .2s;margin-bottom:12px;font-family:inherit;}
+.inp:focus{border-color:rgba(244,114,182,.5);}
+.inp::placeholder{color:rgba(255,255,255,.2);}
+/* BUTTONS */
+.btn{padding:12px 16px;border:none;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .2s;font-family:inherit;}
+.btn-full{width:100%;}
+.btn-pink{background:linear-gradient(135deg,#be185d,var(--pink));color:#fff;}
+.btn-green{background:linear-gradient(135deg,#15803d,var(--green));color:#06040c;}
+.btn-red{background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.3);color:var(--red);}
+.btn-blue{background:linear-gradient(135deg,#1d4ed8,var(--blue2));color:#fff;}
+.btn-indigo{background:linear-gradient(135deg,#4338ca,var(--indigo));color:#fff;}
+.btn-out{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--cream);}
+.btn:active{transform:scale(.97);}
+/* STATUS */
+.saved-msg{font-size:11px;color:var(--green);margin-top:8px;display:none;text-align:center;letter-spacing:1px;}
+.saved-msg.show{display:block;}
+/* DIVIDER */
+.div{height:1px;background:var(--faint);margin:14px 0;}
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.toggle-label{font-size:13px;font-weight:700;color:var(--cream);}
+.toggle-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.toggle-wrap{position:relative;width:50px;height:28px;flex-shrink:0;}
+.toggle-wrap input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.1);border-radius:28px;transition:.3s;border:1px solid rgba(255,255,255,.1);}
+.toggle-thumb{position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.3s;}
+/* QR PREVIEW */
+.qr-preview-wrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px;}
+.qr-current{flex-shrink:0;}
+.qr-current img{width:110px;height:110px;border-radius:10px;border:1px solid var(--faint);object-fit:contain;background:rgba(255,255,255,.04);}
+.qr-current-lbl{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.qr-new{flex:1;min-width:160px;}
+.file-inp{width:100%;padding:9px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.15);border-radius:10px;color:var(--cream);font-size:12px;cursor:pointer;margin-bottom:10px;}
+/* PRICE TABLE */
+.price-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--faint);}
+.price-row:last-child{border:none;}
+.price-pkg{flex:1;font-size:13px;font-weight:700;color:var(--cream);display:flex;align-items:center;gap:8px;}
+.price-em{font-size:18px;}
+.price-inp{width:90px;padding:8px 10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--gold);font-size:13px;font-weight:700;text-align:center;outline:none;font-family:inherit;}
+.price-inp:focus{border-color:rgba(251,191,36,.5);}
+/* SECTION TABS */
+.sec-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.sec-tab{flex:1;padding:10px;background:rgba(255,255,255,.04);border:1px solid var(--faint);border-radius:10px;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;text-align:center;letter-spacing:1px;transition:all .2s;}
+.sec-tab.active{background:rgba(244,114,182,.12);border-color:rgba(244,114,182,.4);color:var(--pink);}
+.admin-sec{display:none;}
+.admin-sec.active{display:block;}
+/* ORDERS */
+.order-card{background:rgba(255,255,255,.03);border:1px solid var(--faint);border-radius:14px;padding:14px;margin-bottom:10px;}
+.order-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.order-pkg{font-size:13px;font-weight:700;color:var(--cream);}
+.order-price{font-size:12px;color:var(--gold);font-family:monospace;}
+.order-info{font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:10px;}
+.badge{display:inline-block;padding:2px 8px;border-radius:50px;font-size:9px;font-weight:700;letter-spacing:1px;}
+.badge-pend{background:rgba(251,191,36,.1);color:var(--gold);border:1px solid rgba(251,191,36,.3);}
+.badge-done{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.3);}
+.order-img{width:100%;max-height:150px;object-fit:contain;border-radius:8px;border:1px solid var(--faint);margin-bottom:10px;cursor:pointer;}
+.order-img.big{max-height:none;}
+.order-btns{display:flex;gap:8px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div style="text-align:center;font-size:32px;margin-bottom:12px;">☕</div>
+    <div class="login-title">MissCoffe Admin</div>
+    <div class="login-sub">Management Panel</div>
+    <input class="l-inp" type="text" id="lUser" placeholder="Username" autocomplete="off">
+    <input class="l-inp" type="password" id="lPass" placeholder="Password">
+    <div class="l-err" id="lErr">❌ Wrong credentials</div>
+    <button class="l-btn" onclick="doLogin()" style="margin-top:8px;">Enter Panel ☕</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <div class="top-bar">
+    <div><div class="top-title">☕ MissCoffe Admin</div><div class="top-sub">Management Panel</div></div>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+
+  <!-- SECTION TABS -->
+  <div class="sec-tabs">
+    <div class="sec-tab active" onclick="showTab('coffee')">☕ Coffee</div>
+    <div class="sec-tab" onclick="showTab('diamond')">💎 Diamond</div>
+    <div class="sec-tab" onclick="showTab('orders')">📋 Orders</div>
+  </div>
+
+  <!-- ── COFFEE SECTION ── -->
+  <div class="admin-sec active" id="tab-coffee">
+
+    <!-- Coffee QR -->
+    <div class="card">
+      <div class="ct ct-pink"></div>
+      <div class="card-ey">Coffee Section</div>
+      <div class="card-hdr">Payment QR Code ☕</div>
+      <div class="qr-preview-wrap">
+        <div class="qr-current">
+          <div class="qr-current-lbl">Current QR</div>
+          <img id="coffeeQRPreview" src="" alt="QR" style="width:110px;height:110px;border-radius:10px;border:1px solid rgba(255,255,255,.1);object-fit:contain;background:rgba(255,255,255,.04);">
+        </div>
+        <div class="qr-new">
+          <div class="lbl">Upload New QR</div>
+          <input type="file" id="coffeeQRFile" accept="image/*" class="file-inp" onchange="previewCoffeeQR()">
+          <img id="coffeeQRNew" style="display:none;width:100%;max-height:120px;border-radius:8px;margin-bottom:8px;object-fit:contain;">
+          <button class="btn btn-pink btn-full" onclick="saveCoffeeQR()">💾 Save Coffee QR</button>
+        </div>
+      </div>
+      <div class="saved-msg" id="coffeeQRSaved">✅ QR saved! Live on site.</div>
+    </div>
+
+    <!-- Coffee Price -->
+    <div class="card">
+      <div class="ct ct-pink"></div>
+      <div class="card-ey">Coffee Section</div>
+      <div class="card-hdr">Coffee Price</div>
+      <div class="lbl">Price per coffee (Rs.)</div>
+      <input class="inp" type="number" id="coffeePrice" placeholder="e.g. 100" inputmode="numeric">
+      <button class="btn btn-pink btn-full" onclick="saveCoffeePrice()">💾 Save Price</button>
+      <div class="saved-msg" id="coffeePriceSaved">✅ Price updated!</div>
+    </div>
+
+    <!-- Coffee Buyers -->
+    <div class="card">
+      <div class="ct ct-pink"></div>
+      <div class="card-ey">Coffee Buyers</div>
+      <div class="card-hdr">Recent Buyers ☕</div>
+      <div id="buyersList"><div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Loading...</div></div>
+    </div>
+
+  </div>
+
+  <!-- ── DIAMOND SECTION ── -->
+  <div class="admin-sec" id="tab-diamond">
+
+    <!-- Diamond QR -->
+    <div class="card">
+      <div class="ct ct-indigo"></div>
+      <div class="card-ey">Diamond Section</div>
+      <div class="card-hdr">Payment QR Code 💎</div>
+      <div class="qr-preview-wrap">
+        <div class="qr-current">
+          <div class="qr-current-lbl">Current QR</div>
+          <img id="diamondQRPreview" src="" alt="QR" style="width:110px;height:110px;border-radius:10px;border:1px solid rgba(255,255,255,.1);object-fit:contain;background:rgba(255,255,255,.04);">
+        </div>
+        <div class="qr-new">
+          <div class="lbl">Upload New QR</div>
+          <input type="file" id="diamondQRFile" accept="image/*" class="file-inp" onchange="previewDiamondQR()">
+          <img id="diamondQRNew" style="display:none;width:100%;max-height:120px;border-radius:8px;margin-bottom:8px;object-fit:contain;">
+          <button class="btn btn-indigo btn-full" onclick="saveDiamondQR()">💾 Save Diamond QR</button>
+        </div>
+      </div>
+      <div class="saved-msg" id="diamondQRSaved">✅ QR saved! Live on site.</div>
+    </div>
+
+    <!-- Stock Status -->
+    <div class="card">
+      <div class="ct ct-green"></div>
+      <div class="card-ey">Diamond Section</div>
+      <div class="card-hdr">Stock Status</div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">In Stock</div>
+          <div class="toggle-sub">Toggle to show stock/out of stock on site</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="stockToggle" onchange="updateStockUI()">
+          <span class="toggle-slider"><span class="toggle-thumb" id="stockThumb"></span></span>
+        </label>
+      </div>
+      <div class="div"></div>
+      <div class="lbl">✅ In Stock Message</div>
+      <input class="inp" type="text" id="inStockMsg" placeholder="e.g. ✅ Diamonds available! Order now.">
+      <div class="lbl">❌ Out of Stock Message</div>
+      <input class="inp" type="text" id="outStockMsg" placeholder="e.g. ❌ Currently out of stock. Check back soon!">
+      <button class="btn btn-green btn-full" onclick="saveStockStatus()">💾 Save Stock Status</button>
+      <div class="saved-msg" id="stockSaved">✅ Stock status updated!</div>
+    </div>
+
+    <!-- Diamond Prices -->
+    <div class="card">
+      <div class="ct ct-indigo"></div>
+      <div class="card-ey">Diamond Section</div>
+      <div class="card-hdr">Package Prices 💰</div>
+      <div id="priceList">
+        <div class="price-row"><div class="price-pkg"><span class="price-em">💎</span>25 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_25" value="40" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">💎</span>50 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_50" value="79" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">💎💎</span>115 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_115" value="120" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">💎💎</span>240 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_240" value="270" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">💎💎💎</span>610 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_610" value="650" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">💎💎💎</span>1,200 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_1200" value="1300" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">👑</span>2,530 Diamonds</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_2530" value="2700" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">🎫</span>Weekly Membership</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_weekly" value="250" inputmode="numeric"></div></div>
+        <div class="price-row"><div class="price-pkg"><span class="price-em">📅</span>Monthly Membership</div><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--muted);">Rs.</span><input class="price-inp" type="number" id="pr_monthly" value="1100" inputmode="numeric"></div></div>
+      </div>
+      <div class="div"></div>
+      <button class="btn btn-indigo btn-full" onclick="savePrices()">💾 Save All Prices</button>
+      <div class="saved-msg" id="pricesSaved">✅ Prices updated! Live on site.</div>
+    </div>
+
+  </div>
+
+  <!-- ── ORDERS SECTION ── -->
+  <div class="admin-sec" id="tab-orders">
+
+    <div class="card">
+      <div class="ct ct-pink"></div>
+      <div class="card-ey">Orders</div>
+      <div class="card-hdr">Diamond Orders 💎</div>
+      <div id="ordersList"><div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Loading...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var _db=null;
+function getDB(){
+  if(_db)return _db;
+  if(!firebase.apps.length){
+    firebase.initializeApp({
+      apiKey:"AIzaSyDPp-JsePgIM4Y3MrFrXEMLiv1GW3sJGKU",
+      authDomain:"dream2moon.firebaseapp.com",
+      projectId:"dream2moon",
+      storageBucket:"dream2moon.firebasestorage.app",
+      messagingSenderId:"172765828532",
+      appId:"1:172765828532:web:d31a0b1dae8cc5752bcee1"
+    });
+  }
+  _db=firebase.firestore();
+  return _db;
+}
+
+// LOGIN
+function doLogin(){
+  var u=document.getElementById('lUser').value.trim();
+  var p=document.getElementById('lPass').value;
+  if(u==='misscoffe'&&p==='MissCoffe@2026'){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    loadAll();
+  } else {
+    document.getElementById('lErr').style.display='block';
+  }
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter') doLogin();
+});
+function doLogout(){
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('lUser').value='';
+  document.getElementById('lPass').value='';
+  document.getElementById('lErr').style.display='none';
+}
+
+// TABS
+function showTab(id){
+  document.querySelectorAll('.admin-sec').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.sec-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// LOAD ALL
+function loadAll(){
+  loadCoffeeMeta();loadDiamondMeta();loadBuyers();loadOrders();
+}
+
+// SAVE MSG
+function showSaved(id){
+  var el=document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2500);
+}
+
+// ── COFFEE QR ──
+function previewCoffeeQR(){
+  var f=document.getElementById('coffeeQRFile').files[0];
+  if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    var img=document.getElementById('coffeeQRNew');
+    img.src=e.target.result;img.style.display='block';
+  };
+  r.readAsDataURL(f);
+}
+function saveCoffeeQR(){
+  var f=document.getElementById('coffeeQRFile').files[0];
+  if(!f){alert('Please select a QR image!');return;}
+  compressQR(f,function(b64){
+    getDB().collection('mc_meta').doc('coffee').set({qrBase64:b64},{merge:true}).then(function(){
+      document.getElementById('coffeeQRPreview').src=b64;
+      showSaved('coffeeQRSaved');
+    }).catch(function(e){alert('Error: '+e.message);});
+  });
+}
+function loadCoffeeMeta(){
+  getDB().collection('mc_meta').doc('coffee').get().then(function(snap){
+    if(!snap.exists)return;
+    var d=snap.data();
+    if(d.qrBase64) document.getElementById('coffeeQRPreview').src=d.qrBase64;
+    if(d.coffeePrice) document.getElementById('coffeePrice').value=d.coffeePrice;
+  }).catch(function(){});
+}
+function saveCoffeePrice(){
+  var p=parseInt(document.getElementById('coffeePrice').value);
+  if(!p||p<1){alert('Enter valid price!');return;}
+  getDB().collection('mc_meta').doc('coffee').set({coffeePrice:p},{merge:true}).then(function(){
+    showSaved('coffeePriceSaved');
+  }).catch(function(e){alert('Error: '+e.message);});
+}
+
+// ── BUYERS LIST ──
+function loadBuyers(){
+  getDB().collection('mc_coffee_buyers').orderBy('timestamp','desc').limit(20).get().then(function(snap){
+    var el=document.getElementById('buyersList');
+    if(snap.empty){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No coffee buyers yet.</div>';return;}
+    var h='';
+    snap.forEach(function(doc){
+      var d=doc.data();
+      var t=d.timestamp?new Date(d.timestamp.seconds*1000).toLocaleString('en-GB'):'—';
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--faint);">'
+        +'<div style="font-size:22px;">☕</div>'
+        +'<div style="flex:1;">'
+        +'<div style="font-size:13px;font-weight:700;color:var(--cream);">'+(d.name||'?')+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">'+(d.cups||1)+' cup'+(d.cups>1?'s':'')+' · Rs. '+(d.amount||100)+(d.message?' · "'+d.message+'"':'')+'</div>'
+        +'<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;">'+t+'</div>'
+        +'</div></div>';
+    });
+    el.innerHTML=h||'<div style="text-align:center;padding:20px;color:var(--muted);">No buyers yet.</div>';
+  }).catch(function(){});
+}
+
+// ── DIAMOND QR ──
+function previewDiamondQR(){
+  var f=document.getElementById('diamondQRFile').files[0];
+  if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    var img=document.getElementById('diamondQRNew');
+    img.src=e.target.result;img.style.display='block';
+  };
+  r.readAsDataURL(f);
+}
+function saveDiamondQR(){
+  var f=document.getElementById('diamondQRFile').files[0];
+  if(!f){alert('Please select a QR image!');return;}
+  compressQR(f,function(b64){
+    getDB().collection('mc_meta').doc('diamond').set({qrBase64:b64},{merge:true}).then(function(){
+      document.getElementById('diamondQRPreview').src=b64;
+      showSaved('diamondQRSaved');
+    }).catch(function(e){alert('Error: '+e.message);});
+  });
+}
+
+// ── STOCK STATUS ──
+function updateStockUI(){
+  var on=document.getElementById('stockToggle').checked;
+  var th=document.getElementById('stockThumb');
+  var sl=document.querySelector('.toggle-slider');
+  sl.style.background=on?'rgba(74,222,128,.6)':'rgba(255,255,255,.1)';
+  th.style.transform=on?'translateX(22px)':'translateX(0)';
+}
+function saveStockStatus(){
+  var on=document.getElementById('stockToggle').checked;
+  var inMsg=document.getElementById('inStockMsg').value.trim();
+  var outMsg=document.getElementById('outStockMsg').value.trim();
+  getDB().collection('mc_meta').doc('diamond').set({
+    inStock:on,
+    inStockMsg:inMsg||'✅ Diamonds available! Order now.',
+    outOfStockMsg:outMsg||'❌ Currently out of stock. Check back soon!'
+  },{merge:true}).then(function(){
+    showSaved('stockSaved');
+  }).catch(function(e){alert('Error: '+e.message);});
+}
+function loadDiamondMeta(){
+  getDB().collection('mc_meta').doc('diamond').get().then(function(snap){
+    if(!snap.exists)return;
+    var d=snap.data();
+    if(d.qrBase64) document.getElementById('diamondQRPreview').src=d.qrBase64;
+    if(typeof d.inStock!=='undefined'){
+      document.getElementById('stockToggle').checked=d.inStock;
+      updateStockUI();
+    }
+    if(d.inStockMsg) document.getElementById('inStockMsg').value=d.inStockMsg;
+    if(d.outOfStockMsg) document.getElementById('outStockMsg').value=d.outOfStockMsg;
+    if(d.prices){
+      var map={'25 Diamonds':'pr_25','50 Diamonds':'pr_50','115 Diamonds':'pr_115','240 Diamonds':'pr_240','610 Diamonds':'pr_610','1,200 Diamonds':'pr_1200','2,530 Diamonds':'pr_2530','Weekly Membership':'pr_weekly','Monthly Membership':'pr_monthly'};
+      for(var k in map){
+        if(d.prices[k]) document.getElementById(map[k]).value=d.prices[k];
+      }
+    }
+  }).catch(function(){});
+}
+
+// ── PRICES ──
+function savePrices(){
+  var prices={
+    '25 Diamonds':parseInt(document.getElementById('pr_25').value)||40,
+    '50 Diamonds':parseInt(document.getElementById('pr_50').value)||79,
+    '115 Diamonds':parseInt(document.getElementById('pr_115').value)||120,
+    '240 Diamonds':parseInt(document.getElementById('pr_240').value)||270,
+    '610 Diamonds':parseInt(document.getElementById('pr_610').value)||650,
+    '1,200 Diamonds':parseInt(document.getElementById('pr_1200').value)||1300,
+    '2,530 Diamonds':parseInt(document.getElementById('pr_2530').value)||2700,
+    'Weekly Membership':parseInt(document.getElementById('pr_weekly').value)||250,
+    'Monthly Membership':parseInt(document.getElementById('pr_monthly').value)||1100
+  };
+  getDB().collection('mc_meta').doc('diamond').set({prices:prices},{merge:true}).then(function(){
+    showSaved('pricesSaved');
+  }).catch(function(e){alert('Error: '+e.message);});
+}
+
+// ── ORDERS ──
+function loadOrders(){
+  getDB().collection('mc_diamond_orders').orderBy('timestamp','desc').limit(50).get().then(function(snap){
+    var el=document.getElementById('ordersList');
+    if(snap.empty){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No orders yet.</div>';return;}
+    var h='';
+    snap.forEach(function(doc){
+      var d=doc.data();var id=doc.id;
+      var t=d.timestamp?new Date(d.timestamp.seconds*1000).toLocaleString('en-GB'):'—';
+      var isPend=d.status==='pending';
+      h+='<div class="order-card">'
+        +'<div class="order-hdr">'
+        +'<div class="order-pkg">'+d.package+'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;">'
+        +'<span class="order-price">Rs. '+d.amount+'</span>'
+        +'<span class="badge '+(isPend?'badge-pend':'badge-done')+'">'+(isPend?'PENDING':'DONE')+'</span>'
+        +'</div></div>'
+        +'<div class="order-info">'
+        +'👤 '+d.fullName+' / '+d.gameName+'<br>'
+        +'🎮 UID: '+d.uid+'<br>'
+        +'📱 WA: '+d.whatsapp+'<br>'
+        +'🕐 '+t
+        +'</div>';
+      if(d.screenshot){
+        h+='<img src="'+d.screenshot+'" class="order-img" onclick="this.classList.toggle('big')" title="Tap to expand">';
+      } else {
+        h+='<div style="font-size:11px;color:rgba(251,113,133,.5);margin-bottom:10px;">⚠️ No screenshot</div>';
+      }
+      if(isPend){
+        h+='<div class="order-btns">'
+          +'<button class="btn btn-green" style="flex:1;" onclick="markOrder(''+id+'','done')">✅ Mark Done</button>'
+          +'<button class="btn btn-red" style="flex:1;" onclick="markOrder(''+id+'','cancelled')">❌ Cancel</button>'
+          +'</div>';
+      }
+      h+='</div>';
+    });
+    el.innerHTML=h;
+  }).catch(function(){});
+}
+function markOrder(id,status){
+  if(!confirm('Mark order as '+status+'?'))return;
+  getDB().collection('mc_diamond_orders').doc(id).update({status:status}).then(function(){
+    loadOrders();
+  }).catch(function(e){alert('Error: '+e.message);});
+}
+
+// ── COMPRESS QR ──
+function compressQR(file,cb){
+  var r=new FileReader();
+  r.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas'),MAX=500,w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      var q=0.85,res=c.toDataURL('image/jpeg',q);
+      while(res.length>600*1024&&q>0.3){q-=0.1;res=c.toDataURL('image/jpeg',q);}
+      cb(res);
+    };
+    img.src=e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+</script>
+</body>
+</html>
