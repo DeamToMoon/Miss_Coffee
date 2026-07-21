@@ -483,14 +483,14 @@ function loadOrders(){
         +'🕐 '+t
         +'</div>';
       if(d.screenshot){
-        h+='<img src="'+d.screenshot+'" class="order-img" onclick="this.classList.toggle('big')" title="Tap to expand">';
+        h+='<img src="'+d.screenshot+'" class="order-img" onclick="this.classList.toggle(&quot;big&quot;)" title="Tap to expand">';
       } else {
         h+='<div style="font-size:11px;color:rgba(251,113,133,.5);margin-bottom:10px;">⚠️ No screenshot</div>';
       }
-      if(isPend){
+            if(isPend){
         h+='<div class="order-btns">'
-          +'<button class="btn btn-green" style="flex:1;" onclick="markOrder(''+id+'','done')">✅ Mark Done</button>'
-          +'<button class="btn btn-red" style="flex:1;" onclick="markOrder(''+id+'','cancelled')">❌ Cancel</button>'
+          +'<button class="btn btn-green" style="flex:1;" onclick="markOrder(this)" data-id="'+id+'" data-status="done">✅ Mark Done</button>'
+          +'<button class="btn btn-red" style="flex:1;" onclick="markOrder(this)" data-id="'+id+'" data-status="cancelled">❌ Cancel</button>'
           +'</div>';
       }
       h+='</div>';
@@ -498,7 +498,9 @@ function loadOrders(){
     el.innerHTML=h;
   }).catch(function(){});
 }
-function markOrder(id,status){
+function markOrder(btn){
+  var id = btn.getAttribute('data-id');
+  var status = btn.getAttribute('data-status');
   if(!confirm('Mark order as '+status+'?'))return;
   getDB().collection('mc_diamond_orders').doc(id).update({status:status}).then(function(){
     loadOrders();
