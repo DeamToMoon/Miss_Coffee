@@ -593,7 +593,7 @@ function loadDynamicData(){
         var nm = row.querySelector('.pkg-nm');
         if(nm && d.prices[nm.textContent]){
           row.querySelector('.pkg-pr').textContent = 'Rs. '+d.prices[nm.textContent];
-          row.setAttribute('onclick','sp(this,''+nm.textContent+'','+d.prices[nm.textContent]+')');
+          row.onclick = (function(nm2,p2){return function(){sp(this,nm2,p2);};})(nm,d.prices[nm.textContent]);
         }
       });
     }
